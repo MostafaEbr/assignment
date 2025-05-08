@@ -5,6 +5,7 @@ import 'package:assignment/features/product_details/presentation/bloc/product_de
 import 'package:assignment/features/product_details/presentation/bloc/product_details_event.dart';
 import 'package:assignment/features/product_details/presentation/bloc/product_details_state.dart';
 import 'package:assignment/config/l10n/app_localizations.dart';
+import 'package:carousel_slider/carousel_slider.dart';
 
 class ProductDetailsPage extends StatefulWidget {
   final int productId;
@@ -20,6 +21,7 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
+  int _currentImageIndex = 0;
 
   @override
   void initState() {
@@ -65,6 +67,29 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
     );
   }
 
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '$label: ',
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context);
@@ -92,39 +117,72 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Hero(
-                          tag: 'product_${product.id}',
-                          child: Image.network(
-                            product.thumbnail,
-                            width: double.infinity,
-                            height: 300,
-                            fit: BoxFit.cover,
-                          ),
+                        // Image Carousel
+                        Stack(
+                          children: [
+                            CarouselSlider(
+                              options: CarouselOptions(
+                                height: 300,
+                                viewportFraction: 1.0,
+                                onPageChanged: (index, reason) {
+                                  setState(() {
+                                    _currentImageIndex = index;
+                                  });
+                                },
+                              ),
+                              items: product.images.map((imageUrl) {
+                                return Image.network(
+                                  imageUrl,
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                );
+                              }).toList(),
+                            ),
+                            Positioned(
+                              bottom: 16,
+                              left: 0,
+                              right: 0,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: product.images.asMap().entries.map((entry) {
+                                  return Container(
+                                    width: 8,
+                                    height: 8,
+                                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _currentImageIndex == entry.key
+                                          ? Theme.of(context).primaryColor
+                                          : Colors.grey,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
+                          ],
                         ),
                         Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              // Title
                               _buildAnimatedContent(
                                 Text(
                                   product.title,
-                                  style:
-                                      Theme.of(
-                                        context,
-                                      ).textTheme.headlineMedium,
+                                  style: Theme.of(context).textTheme.headlineMedium,
                                 ),
                                 0,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 16),
+
+                              // Price and Discount
                               _buildAnimatedContent(
                                 Row(
                                   children: [
                                     Text(
                                       '\$${product.price.toStringAsFixed(2)}',
-                                      style: Theme.of(
-                                        context,
-                                      ).textTheme.headlineSmall?.copyWith(
+                                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                                         color: Colors.green,
                                         fontWeight: FontWeight.bold,
                                       ),
@@ -133,108 +191,104 @@ class _ProductDetailsPageState extends State<ProductDetailsPage>
                                     if (product.discountPercentage > 0)
                                       Text(
                                         '${product.discountPercentage}% off',
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleMedium
-                                            ?.copyWith(color: Colors.red),
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                          color: Colors.red,
+                                        ),
                                       ),
                                   ],
                                 ),
                                 1,
                               ),
                               const SizedBox(height: 16),
+
+                              // Description
                               _buildAnimatedContent(
-                                Text(
-                                  l10n.description,
-                                  style: Theme.of(context).textTheme.titleLarge,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      l10n.description,
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(product.description),
+                                  ],
                                 ),
                                 2,
                               ),
-                              const SizedBox(height: 8),
-                              _buildAnimatedContent(
-                                Text(product.description),
-                                3,
-                              ),
                               const SizedBox(height: 16),
+
+                              // Product Details
                               _buildAnimatedContent(
-                                Text(
-                                  '${l10n.brand}: ${product.brand}',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                4,
-                              ),
-                              const SizedBox(height: 8),
-                              _buildAnimatedContent(
-                                Text(
-                                  '${l10n.category}: ${product.category}',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                5,
-                              ),
-                              const SizedBox(height: 8),
-                              _buildAnimatedContent(
-                                Row(
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.star, color: Colors.amber),
-                                    const SizedBox(width: 4),
                                     Text(
-                                      '${l10n.rating}: ${product.rating}',
-                                      style:
-                                          Theme.of(
-                                            context,
-                                          ).textTheme.titleMedium,
+                                      'Product Details',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    _buildInfoRow(l10n.brand, product.brand),
+                                    _buildInfoRow(l10n.category, product.category),
+                                    _buildInfoRow('SKU', 'SKU-${product.id}'),
+                                    _buildInfoRow(l10n.stock, product.stock.toString()),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.star, color: Colors.amber),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${l10n.rating}: ${product.rating}',
+                                          style: Theme.of(context).textTheme.titleMedium,
+                                        ),
+                                      ],
                                     ),
                                   ],
                                 ),
-                                6,
-                              ),
-                              const SizedBox(height: 8),
-                              _buildAnimatedContent(
-                                Text(
-                                  '${l10n.stock}: ${product.stock}',
-                                  style:
-                                      Theme.of(context).textTheme.titleMedium,
-                                ),
-                                7,
+                                3,
                               ),
                               const SizedBox(height: 16),
+
+                              // Tags
                               _buildAnimatedContent(
-                                Text(
-                                  l10n.gallery,
-                                  style: Theme.of(context).textTheme.titleLarge,
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Tags',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Wrap(
+                                      spacing: 8,
+                                      children: [
+                                        Chip(label: Text(product.category)),
+                                        Chip(label: Text(product.brand)),
+                                        // Add more tags as needed
+                                      ],
+                                    ),
+                                  ],
                                 ),
-                                8,
+                                4,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 16),
+
+                              // Reviews Section
                               _buildAnimatedContent(
-                                SizedBox(
-                                  height: 100,
-                                  child: ListView.builder(
-                                    scrollDirection: Axis.horizontal,
-                                    itemCount: product.images.length,
-                                    itemBuilder: (context, index) {
-                                      return Padding(
-                                        padding: const EdgeInsets.only(
-                                          right: 8.0,
-                                        ),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(
-                                            8,
-                                          ),
-                                          child: Image.network(
-                                            product.images[index],
-                                            width: 100,
-                                            height: 100,
-                                            fit: BoxFit.cover,
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Reviews',
+                                      style: Theme.of(context).textTheme.titleLarge,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    // Placeholder for reviews
+                                    const Center(
+                                      child: Text('No reviews yet'),
+                                    ),
+                                  ],
                                 ),
-                                9,
+                                5,
                               ),
                             ],
                           ),
